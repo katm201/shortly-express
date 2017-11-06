@@ -40,7 +40,7 @@ module.exports.authenticateCredentials = (req, res, next) => {
       
 };
 
-module.exports.createNewUser = () => {
+module.exports.createNewUser = (req, res, next) => {
   // handle new user creation here
   // return check user doesn't exist (async)
   // .then (true/false)
@@ -48,8 +48,23 @@ module.exports.createNewUser = () => {
       // reject
     // if true
       // create the user
+  let username = req.body.username;
+  let password = req.body.password;
+  
+  return new Promise((resolve, reject) => {
+    models.Users.create({ username: username, password: password });
+  }).then(results => {
+    next();
+  }).catch(err => {
+    res.redirect(301, '/login');
+  });
   // .then
     // redirect to home page
   // .catch
     // redirect to login
 };
+
+
+
+
+

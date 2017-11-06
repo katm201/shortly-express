@@ -85,12 +85,19 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
-app.post('/login', (req, res) => {
-  // authenticate credentials
+app.get('/signup', (req, res) => {
+  res.render('signup');
 });
 
-app.post('/signup', (req, res) => {
+
+app.post('/login', (req, res) => {
+  // authenticate credentials
+  app.redirect('/');
+});
+
+app.post('/signup', Auth.createNewUser, (req, res) => {
   // add user
+  app.redirect('/');
 });
 
 /************************************************************/
