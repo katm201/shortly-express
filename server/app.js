@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 
 
-app.get('/', /*auth middleware, */ (req, res) => {
+app.get('/', Auth.authenticateUser, (req, res) => {
   //
   res.render('index');
 });
@@ -25,16 +25,6 @@ app.get('/', /*auth middleware, */ (req, res) => {
 app.get('/create', 
 (req, res) => {
   res.render('index');
-});
-
-app.post('/login', 
-(req, res) => {
-  // authenticate credentials
-});
-
-app.post('/signup', 
-(req, res) => {
-  // add user
 });
 
 app.get('/links',
@@ -90,49 +80,19 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 
-authenticateUser = (req, res, next) => {
-  // return checkLogin status (async)
-  // .then (true/false)
-    // if true,
-      // next()
-    // if false,
-    // redirect to login page
-  
-  
-};
 
-authenticateCredentials = (req, res, next) => {
-  // return checkUser status (async)
-  // .then (present/not present)
-    // if not present
-      // redirect to the signup page
-    // if present
-      // keep going
-  // .then
-    // return checkPW status (async)
-  // .then (true/false)
-    // if false
-      // reject
-    // if true
-      // redirect to the correct page
-  // .catch
-    // redirect to the login page
-      
-};
+app.get('/login', (req, res) => {
+  res.render('login');
+});
 
-createNewUser = () => {
-  // handle new user creation here
-  // return check user doesn't exist (async)
-  // .then (true/false)
-    // if false,
-      // reject
-    // if true
-      // create the user
-  // .then
-    // redirect to home page
-  // .catch
-    // redirect to login
-};
+app.post('/login', (req, res) => {
+  // authenticate credentials
+});
+
+app.post('/signup', (req, res) => {
+  // add user
+});
+
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
