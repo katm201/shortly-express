@@ -85,7 +85,6 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
-  console.log(req.headers.cookies);
   res.render('signup');
 });
 
@@ -95,6 +94,10 @@ app.post('/login', Auth.authenticateCredentials, Auth.associateCookie, (req, res
 });
 
 app.post('/signup', Auth.createNewUser, Auth.associateCookie, (req, res) => {
+  res.redirect('/');
+});
+
+app.get('/logout', Auth.removeCookieAndSession, (req, res) => {
   res.redirect('/');
 });
 

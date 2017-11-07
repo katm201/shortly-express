@@ -505,6 +505,7 @@ describe('', function() {
     });
 
     it('saves a new session when the server receives a request', function(done) {
+      console.log('TEST 22');
       requestWithSession('http://127.0.0.1:4568/', function(err, res, body) {
         if (err) { return done(err); }
         var queryString = 'SELECT * FROM sessions';
@@ -518,6 +519,7 @@ describe('', function() {
     });
 
     it('sets and stores a cookie on the client', function(done) {
+      console.log('TEST 23');
       requestWithSession('http://127.0.0.1:4568/', function(error, res, body) {
         if (error) { return done(error); }
         var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');
@@ -527,6 +529,7 @@ describe('', function() {
     });
 
     it('assigns session to a user when user logs in', function(done) {
+      console.log('TEST 24');
       addUser(function(err, res, body) {
         if (err) { return done(err); }
         var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');
@@ -547,6 +550,7 @@ describe('', function() {
     });
 
     it('destroys session and cookie when logs out', function(done) {
+      console.log('TEST 25');
       addUser(function(err, res, body) {
         if (err) { return done(err); }
         var cookies = cookieJar.getCookies('http://127.0.0.1:4568/');

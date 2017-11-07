@@ -44,16 +44,15 @@ module.exports.authenticateUser = (req, res, next) => {
   }).then(function(results) {
     if (results.userId === null) {
       res.redirect(301, '/login');
+    } else {
+      next();
     }
-    next();
   });
 };
 
 module.exports.associateCookie = (req, res, next) => {
   let cookieHash = req.session.hash;
   let userId = req.session.userId;
-  console.log('cookie hash: ', cookieHash);
-  console.log('userid: ', userId);
   let options = {
     hash: cookieHash
   };
@@ -78,7 +77,6 @@ module.exports.authenticateCredentials = (req, res, next) => {
   })
   .then( user => {
     if (user) {
-      console.log('IN LOGIN, USER GET INTO', user);
       let salt = user.salt;
       let passwordHash = user.password;
       req.user = user;
@@ -92,7 +90,6 @@ module.exports.authenticateCredentials = (req, res, next) => {
       console.log('Failed authentication, please sign up');
       res.redirect(301, '/login');
     } else {
-      console.log('Successful authentication, session into ', req.session);
       req.session.userId = req.user.id;
       req.session.user = req.user;
       next();
@@ -111,25 +108,30 @@ module.exports.createNewUser = (req, res, next) => {
     };
     resolve(models.Users.get(options));
   }).then(user => {
-    console.log('USER', user);
     if (user !== undefined) {
       reject();
     } else {
       return models.Users.create({ username: username, password: password });
     }
   }).then(results => {
-    console.log('CREATE USER RESULT ', results);
-
     req.session.userId = results.insertId;
-
     next();
   }).catch(err => {
-    console.log('redirect to signup');
     res.redirect(301, '/signup');
   });
 };
 
-
+module.exports.removeCookieAndSession = (req, res, next) => {
+  let options = { hash: req.session.hash };
+  let values = { hash: null };
+  return new Promise((resolve, reject) => {
+    resolve(models.Sessions.update(options, values));
+  }).then( (results) => {
+    res.clearCookie('shortlyid');
+    req.session = null;
+    next();
+  });
+};
 
 
 
