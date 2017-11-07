@@ -91,12 +91,12 @@ app.get('/signup', (req, res) => {
 });
 
 
-app.post('/login', Auth.authenticateCredentials, Auth.setCookie, (req, res) => {
+app.post('/login', Auth.authenticateCredentials, Auth.createSession, (req, res) => {
   // authenticate credentials
   res.redirect('/');
 });
 
-app.post('/signup', Auth.createNewUser, (req, res) => {
+app.post('/signup', Auth.createNewUser, Auth.createSession, (req, res) => {
   // add user
   res.redirect('/');
 });

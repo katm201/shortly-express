@@ -2,6 +2,32 @@ const models = require('../models');
 const Promise = require('bluebird');
 
 module.exports.createSession = (req, res, next) => {
+  //create a new session in the db
+  //cookie format: shortlyid=<hash>
+  return new Promise((resolve, reject) => {
+    let options = {
+      userId: req.userId
+    };
+    resolve(models.Sessions.create(options));
+  }).then(results => {
+    let sessionId = results.insertId;
+    req.sessionId = sessionId;
+    let options = {
+      id: sessionId,
+    };
+    let values = {
+      userId: req.userId
+    };
+    return models.Sessions.update(options, values);
+  }).then(results => {
+    console.log('sessionId', req.sessionId);
+    console.log('userId', req.userId);
+    return models.Sessions.get({ id: req.sessionId });
+  }).then(results => {
+    console.log('results ', results);
+    res.cookie('shortlyid', results.hash);
+    next();
+  });
 };
 
 /************************************************************/
@@ -31,15 +57,19 @@ module.exports.authenticateCredentials = (req, res, next) => {
     resolve(models.Users.get(options));
   })
   .then( user => {
-    let salt = user.salt;
-    let passwordHash = user.password;
-    req.userId = user.id;
-    return models.Users.compare(attemptedPassword, passwordHash, salt); //resolve
+    if (user) {
+      let salt = user.salt;
+      let passwordHash = user.password;
+      req.userId = user.id;
+      return models.Users.compare(attemptedPassword, passwordHash, salt); //resolve
+    }
   })
   .then( bool => {
+    // sends to login page for users that either don't exit in the
+    // database or for users that fail their password check
     if (!bool) {
       console.log('Failed authentication, please sign up');
-      res.redirect(301, '/signup');
+      res.redirect(301, '/login');
     } else {
       console.log('Successful authentication');
       // res.cookie('ImACookie');
@@ -49,19 +79,34 @@ module.exports.authenticateCredentials = (req, res, next) => {
   .catch( err => console.log('FAILED to login ', err));
 };
 
-module.exports.setCookie = (req, res, next) => {
-  //create a new session in the db
-  //
-  return new Promise((resolve, reject) => {
-    let options = {
-      userId: req.userId
-    };
-    resolve(models.Sessions.create(options));
-  }).then(results => {
-    console.log('SESSION RESULT', results);
-    next();
-  });
-};
+// module.exports.setCookie = (req, res, next) => {
+//   //create a new session in the db
+//   //cookie format: shortlyid=<hash>
+//   return new Promise((resolve, reject) => {
+//     let options = {
+//       userId: req.userId
+//     };
+//     resolve(models.Sessions.create(options));
+//   }).then(results => {
+//     let sessionId = results.insertId;
+//     req.sessionId = sessionId;
+//     let options = {
+//       id: sessionId,
+//     };
+//     let values = {
+//       userId: req.userId
+//     };
+//     return models.Sessions.update(options, values);
+//   }).then(results => {
+//     console.log('sessionId', req.sessionId);
+//     console.log('userId', req.userId);
+//     return models.Sessions.get({ id: req.sessionId });
+//   }).then(results => {
+//     console.log('results ', results);
+//     res.cookie('shortlyid', results.hash);
+//     next();
+//   });
+// };
 
 module.exports.createNewUser = (req, res, next) => {
   // handle new user creation here
