@@ -23,13 +23,11 @@ app.get('/', Auth.authenticateUser, (req, res) => {
   res.render('index');
 });
 
-app.get('/create', 
-(req, res) => {
+app.get('/create', Auth.authenticateUser, (req, res) => {
   res.render('index');
 });
 
-app.get('/links',
-(req, res, next) => {
+app.get('/links', Auth.authenticateUser, (req, res, next) => {
   models.Links.getAll()
     .then(links => {
       res.status(200).send(links);
