@@ -18,11 +18,8 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.use(cookieParser);
 app.use(Auth.createSession);
-app.use(cookieParser);
-
 
 app.get('/', Auth.authenticateUser, (req, res) => {
-  //
   res.render('index');
 });
 
@@ -41,8 +38,6 @@ app.get('/links',
       res.status(500).send(error);
     });
 });
-
-
 
 app.post('/links', 
 (req, res, next) => {
@@ -96,12 +91,10 @@ app.get('/signup', (req, res) => {
 
 
 app.post('/login', Auth.authenticateCredentials, (req, res) => {
-  // authenticate credentials
   res.redirect('/');
 });
 
 app.post('/signup', Auth.createNewUser, (req, res) => {
-  // add user
   res.redirect('/');
 });
 
