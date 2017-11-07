@@ -6,9 +6,9 @@ module.exports.createSession = (req, res, next) => {
   //create a new session in the db
   //cookie format: shortlyid=<hash>
 
-  return new Promise((resolve, reject) => {
-    if (req.cookie && req.cookie.hasOwnProperty('shortlyid')) {
-      resolve(models.Sessions.get({ hash: req.cookie.shortlyid}));
+  new Promise((resolve, reject) => {
+    if (req.cookies && req.cookies.hasOwnProperty('shortlyid')) {
+      resolve(models.Sessions.get({ hash: req.cookies.shortlyid}));
     } else {
       throw 'No cookie found. Must create new session.';
     }
@@ -17,32 +17,22 @@ module.exports.createSession = (req, res, next) => {
       throw 'Malicious cookie. Must create new session';
     } else {
       req.session = sessionObj;
+      res.cookie('shortlyid', sessionObj.hash);
       next();
     }
   }).catch(notify => {
-    console.log('NOTIFICATION: ', notify);
-    return models.Sessions.create();
-  }).then(results => {
-    console.log('POST THROW RESULTS, ', results);
-    return models.Sessions.get({ id: results.insertId });
-  }).then(results => {
-    console.log('POST GET RESULTS, ', results);
-    let cookieHash = results.hash;
-    req.session = results;
-    res.cookie('shortlyid', cookieHash);
-    next();
+    return new Promise((resolve, reject) => {
+      resolve(models.Sessions.create());
+    }).then(results => {
+      return models.Sessions.get({ id: results.insertId });
+    }).then(results => {
+      let cookieHash = results.hash;
+      req.session = results;
+      res.cookie('shortlyid', cookieHash);
+      next();
+    });
   });
 };
-
-
-// check if re has cookie && shortlyid
-// if YES
-//   check if session is REAL
-//     if YES req.session = sessionObj
-//     if NO
-//       THROW to createSesh
-// if NO
-//   throw to createSesh
 
 /************************************************************/
 // Add additional authentication middleware functions below
@@ -59,7 +49,9 @@ module.exports.authenticateUser = (req, res, next) => {
   });
 };
 
-var associateCookie = (cookieHash, userId) => {
+module.exports.associateCookie = (req, res, next) => {
+  let cookieHash = req.cookies.shortlyId;
+  let userId = req.session.userId;
   console.log('cookie hash: ', cookieHash);
   console.log('userid: ', userId);
   let options = {
@@ -68,9 +60,12 @@ var associateCookie = (cookieHash, userId) => {
   let values = {
     userId: userId
   };
-  return models.Sessions.update(options, values);
+  return new Promise((resolve, reject) => {
+    resolve(models.Sessions.update(options, values));
+  }).then(results => {
+    next();
+  });
 };
-
 
 module.exports.authenticateCredentials = (req, res, next) => {
   let username = req.body.username;
@@ -83,9 +78,10 @@ module.exports.authenticateCredentials = (req, res, next) => {
   })
   .then( user => {
     if (user) {
+      console.log('IN LOGIN, USER GET INTO', user);
       let salt = user.salt;
       let passwordHash = user.password;
-      req.userId = user.id;
+      req.user = user;
       return models.Users.compare(attemptedPassword, passwordHash, salt); //resolve
     }
   })
@@ -96,8 +92,9 @@ module.exports.authenticateCredentials = (req, res, next) => {
       console.log('Failed authentication, please sign up');
       res.redirect(301, '/login');
     } else {
-      console.log('Successful authentication');
-      associateCookie(req.cookies.shortlyId, req.userId);
+      console.log('Successful authentication, session into ', req.session);
+      req.session.userId = req.user.id;
+      req.session.user = req.user;
       next();
     }
   })
@@ -122,11 +119,9 @@ module.exports.createNewUser = (req, res, next) => {
     }
   }).then(results => {
     console.log('CREATE USER RESULT ', results);
-    console.log('new user created, need to associate cookies with login');
-    console.log('cookies', req.cookies);
-    console.log('results.insertId', results.insertId);
-    associateCookie(req.cookies.shortlyid, results.insertId);
-    console.log('cookie associated');
+
+    req.session.userId = results.insertId;
+
     next();
   }).catch(err => {
     console.log('redirect to signup');

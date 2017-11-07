@@ -90,11 +90,11 @@ app.get('/signup', (req, res) => {
 });
 
 
-app.post('/login', Auth.authenticateCredentials, (req, res) => {
+app.post('/login', Auth.authenticateCredentials, Auth.associateCookie, (req, res) => {
   res.redirect('/');
 });
 
-app.post('/signup', Auth.createNewUser, (req, res) => {
+app.post('/signup', Auth.createNewUser, Auth.associateCookie, (req, res) => {
   res.redirect('/');
 });
 
