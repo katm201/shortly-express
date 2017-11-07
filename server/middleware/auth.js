@@ -22,7 +22,35 @@ module.exports.authenticateUser = (req, res, next) => {
 };
 
 module.exports.authenticateCredentials = (req, res, next) => {
+  let username = req.body.username;
+  let attemptedPassword = req.body.password;
   // return checkUser status (async)
+  return new Promise(function(resolve, reject) {
+    let options = {
+      username: username
+    };
+    console.log('in original promise: ', options);
+    resolve(models.Users.get(options));
+    // return models.Users.get(options);
+  })
+  .then( user => {
+    console.log('made it past get');
+    let salt = user.salt;
+    let passwordHash = user.password;
+    console.log('before compare users: ', user);
+    return models.Users.compare(attemptedPassword, passwordHash, salt);
+  })
+  .then( bool => {
+    console.log('after compare ', bool);
+    if (!bool) {
+      console.log('Failed authentication, please sign up');
+      res.redirect(301, '/signup');
+    } else {
+      console.log('Successful authentication');
+      next();
+    }
+  })
+  .catch( err => console.log('FAILED to login ', err));
   // .then (present/not present)
     // if not present
       // redirect to the signup page

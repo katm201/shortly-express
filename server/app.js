@@ -90,14 +90,14 @@ app.get('/signup', (req, res) => {
 });
 
 
-app.post('/login', (req, res) => {
+app.post('/login', Auth.authenticateCredentials, (req, res) => {
   // authenticate credentials
-  app.redirect('/');
+  res.redirect('/');
 });
 
 app.post('/signup', Auth.createNewUser, (req, res) => {
   // add user
-  app.redirect('/');
+  res.redirect('/');
 });
 
 /************************************************************/
