@@ -24,48 +24,43 @@ module.exports.authenticateUser = (req, res, next) => {
 module.exports.authenticateCredentials = (req, res, next) => {
   let username = req.body.username;
   let attemptedPassword = req.body.password;
-  // return checkUser status (async)
   return new Promise(function(resolve, reject) {
     let options = {
       username: username
     };
-    console.log('in original promise: ', options);
     resolve(models.Users.get(options));
-    // return models.Users.get(options);
   })
   .then( user => {
-    console.log('made it past get');
     let salt = user.salt;
     let passwordHash = user.password;
-    console.log('before compare users: ', user);
-    return models.Users.compare(attemptedPassword, passwordHash, salt);
+    req.userId = user.id;
+    return models.Users.compare(attemptedPassword, passwordHash, salt); //resolve
   })
   .then( bool => {
-    console.log('after compare ', bool);
     if (!bool) {
       console.log('Failed authentication, please sign up');
       res.redirect(301, '/signup');
     } else {
       console.log('Successful authentication');
+      // res.cookie('ImACookie');
       next();
     }
   })
   .catch( err => console.log('FAILED to login ', err));
-  // .then (present/not present)
-    // if not present
-      // redirect to the signup page
-    // if present
-      // keep going
-  // .then
-    // return checkPW status (async)
-  // .then (true/false)
-    // if false
-      // reject
-    // if true
-      // redirect to the correct page
-  // .catch
-    // redirect to the login page
-      
+};
+
+module.exports.setCookie = (req, res, next) => {
+  //create a new session in the db
+  //
+  return new Promise((resolve, reject) => {
+    let options = {
+      userId: req.userId
+    };
+    resolve(models.Sessions.create(options));
+  }).then(results => {
+    console.log('SESSION RESULT', results);
+    next();
+  });
 };
 
 module.exports.createNewUser = (req, res, next) => {
@@ -79,18 +74,38 @@ module.exports.createNewUser = (req, res, next) => {
   let username = req.body.username;
   let password = req.body.password;
   
-  return new Promise((resolve, reject) => {
-    resolve(models.Users.create({ username: username, password: password }));
+  return new Promise(function(resolve, reject) {
+    let options = {
+      username: username
+    };
+    resolve(models.Users.get(options));
+  }).then(user => {
+    console.log('USER', user);
+    if (user !== undefined) {
+      console.log('about to reject');
+      reject();
+    } else {
+      console.log('about to create');
+      console.log('username: ', username);
+      console.log('password: ', password);
+      return models.Users.create({ username: username, password: password });
+    }
   }).then(results => {
     console.log('new user created, redirect to home page');
     next();
   }).catch(err => {
-    res.redirect(301, '/login');
+    console.log('redirect to signup');
+    res.redirect(301, '/signup');
   });
-  // .then
-    // redirect to home page
-  // .catch
-    // redirect to login
+  
+  // return new Promise((resolve, reject) => {
+  //   resolve(models.Users.create({ username: username, password: password }));
+  // }).then(results => {
+  //   console.log('new user created, redirect to home page');
+  //   next();
+  // }).catch(err => {
+  //   res.redirect(301, '/login');
+  // });
 };
 
 

@@ -86,11 +86,12 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
+  console.log(req.headers.cookies);
   res.render('signup');
 });
 
 
-app.post('/login', Auth.authenticateCredentials, (req, res) => {
+app.post('/login', Auth.authenticateCredentials, Auth.setCookie, (req, res) => {
   // authenticate credentials
   res.redirect('/');
 });
