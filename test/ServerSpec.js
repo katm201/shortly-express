@@ -455,7 +455,6 @@ describe('', function() {
               createSession(requestWithCookies, secondResponse, function() {
                 var session = requestWithCookies.session;
                 expect(session).to.be.an('object');
-                console.log('SESSION ', session);
                 expect(session.user.username).to.eq(username);
                 expect(session.userId).to.eq(userId);
                 done();
@@ -481,7 +480,7 @@ describe('', function() {
     });
   });
 
-  xdescribe('Sessions and cookies', function() {
+  describe('Sessions and cookies', function() {
     var requestWithSession;
     var cookieJar;
 
