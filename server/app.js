@@ -4,6 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+const cookieParser = require('./middleware/cookieParser.js');
 const models = require('./models');
 
 const app = express();
@@ -15,6 +16,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
+app.use(cookieParser);
+app.use(Auth.createSession);
+app.use(cookieParser);
 
 
 app.get('/', Auth.authenticateUser, (req, res) => {
@@ -91,12 +95,12 @@ app.get('/signup', (req, res) => {
 });
 
 
-app.post('/login', Auth.authenticateCredentials, Auth.createSession, (req, res) => {
+app.post('/login', Auth.authenticateCredentials, (req, res) => {
   // authenticate credentials
   res.redirect('/');
 });
 
-app.post('/signup', Auth.createNewUser, Auth.createSession, (req, res) => {
+app.post('/signup', Auth.createNewUser, (req, res) => {
   // add user
   res.redirect('/');
 });
