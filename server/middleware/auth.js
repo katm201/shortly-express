@@ -1,33 +1,27 @@
 const models = require('../models');
 const Promise = require('bluebird');
+const cookieParser = require('./cookieParser.js');
 
 module.exports.createSession = (req, res, next) => {
   //create a new session in the db
   //cookie format: shortlyid=<hash>
-  return new Promise((resolve, reject) => {
-    let options = {
-      userId: req.userId
-    };
-    resolve(models.Sessions.create(options));
-  }).then(results => {
-    let sessionId = results.insertId;
-    req.sessionId = sessionId;
-    let options = {
-      id: sessionId,
-    };
-    let values = {
-      userId: req.userId
-    };
-    return models.Sessions.update(options, values);
-  }).then(results => {
-    console.log('sessionId', req.sessionId);
-    console.log('userId', req.userId);
-    return models.Sessions.get({ id: req.sessionId });
-  }).then(results => {
-    console.log('results ', results);
-    res.cookie('shortlyid', results.hash);
-    next();
-  });
+  
+  if (!req.cookie || !req.cookie.hasOwnProperty('shortlyid')) {
+    return new Promise((resolve, reject) => {
+      resolve(models.Sessions.create());
+    }).then(results => {
+      console.log('sessionId', results.insertId);
+      return models.Sessions.get({ id: results.insertId});
+    }).then(results => {
+      console.log('results ', results);
+      res.cookie('shortlyid', results.hash);
+      console.log('cookie created: ', req.cookies );
+      next();
+    });
+  } else {
+    next();  
+  }
+  
 };
 
 /************************************************************/
@@ -35,17 +29,28 @@ module.exports.createSession = (req, res, next) => {
 /************************************************************/
 
 module.exports.authenticateUser = (req, res, next) => {
-  // return checkLogin status (async)
-  // .then (true/false)
-    // if true,
-      // next()
-    // if false,
-    
-    // redirect to login page
-  res.redirect(301, '/login');
-  
-  
+  return new Promise(function(resolve, reject) {
+    resolve(models.Sessions.get({ hash: req.cookie.shortlyid }));
+  }).then(function(results) {
+    if (results.userId === null) {
+      res.redirect(301, '/login');
+    }
+    next();
+  });
 };
+
+var associateCookie = (cookieHash, userId) => {
+  console.log('cookie hash: ', cookieHash);
+  console.log('userid: ', userId);
+  let options = {
+    hash: cookieHash
+  };
+  let values = {
+    userId: userId
+  };
+  return models.Sessions.update(options, values);
+};
+
 
 module.exports.authenticateCredentials = (req, res, next) => {
   let username = req.body.username;
@@ -72,50 +77,14 @@ module.exports.authenticateCredentials = (req, res, next) => {
       res.redirect(301, '/login');
     } else {
       console.log('Successful authentication');
-      // res.cookie('ImACookie');
+      associateCookie(req.cookies.shortlyId, req.userId);
       next();
     }
   })
   .catch( err => console.log('FAILED to login ', err));
 };
 
-// module.exports.setCookie = (req, res, next) => {
-//   //create a new session in the db
-//   //cookie format: shortlyid=<hash>
-//   return new Promise((resolve, reject) => {
-//     let options = {
-//       userId: req.userId
-//     };
-//     resolve(models.Sessions.create(options));
-//   }).then(results => {
-//     let sessionId = results.insertId;
-//     req.sessionId = sessionId;
-//     let options = {
-//       id: sessionId,
-//     };
-//     let values = {
-//       userId: req.userId
-//     };
-//     return models.Sessions.update(options, values);
-//   }).then(results => {
-//     console.log('sessionId', req.sessionId);
-//     console.log('userId', req.userId);
-//     return models.Sessions.get({ id: req.sessionId });
-//   }).then(results => {
-//     console.log('results ', results);
-//     res.cookie('shortlyid', results.hash);
-//     next();
-//   });
-// };
-
 module.exports.createNewUser = (req, res, next) => {
-  // handle new user creation here
-  // return check user doesn't exist (async)
-  // .then (true/false)
-    // if false,
-      // reject
-    // if true
-      // create the user
   let username = req.body.username;
   let password = req.body.password;
   
@@ -127,30 +96,22 @@ module.exports.createNewUser = (req, res, next) => {
   }).then(user => {
     console.log('USER', user);
     if (user !== undefined) {
-      console.log('about to reject');
       reject();
     } else {
-      console.log('about to create');
-      console.log('username: ', username);
-      console.log('password: ', password);
       return models.Users.create({ username: username, password: password });
     }
   }).then(results => {
-    console.log('new user created, redirect to home page');
+    console.log('CREATE USER RESULT ', results);
+    console.log('new user created, need to associate cookies with login');
+    console.log('cookies', req.cookies);
+    console.log('results.insertId', results.insertId);
+    associateCookie(req.cookies.shortlyid, results.insertId);
+    console.log('cookie associated');
     next();
   }).catch(err => {
     console.log('redirect to signup');
     res.redirect(301, '/signup');
   });
-  
-  // return new Promise((resolve, reject) => {
-  //   resolve(models.Users.create({ username: username, password: password }));
-  // }).then(results => {
-  //   console.log('new user created, redirect to home page');
-  //   next();
-  // }).catch(err => {
-  //   res.redirect(301, '/login');
-  // });
 };
 
 
