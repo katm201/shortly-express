@@ -80,8 +80,9 @@ module.exports.createNewUser = (req, res, next) => {
   let password = req.body.password;
   
   return new Promise((resolve, reject) => {
-    models.Users.create({ username: username, password: password });
+    resolve(models.Users.create({ username: username, password: password }));
   }).then(results => {
+    console.log('new user created, redirect to home page');
     next();
   }).catch(err => {
     res.redirect(301, '/login');
