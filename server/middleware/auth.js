@@ -40,7 +40,7 @@ module.exports.createSession = (req, res, next) => {
 
 module.exports.authenticateUser = (req, res, next) => {
   return new Promise(function(resolve, reject) {
-    resolve(models.Sessions.get({ hash: req.cookie.shortlyid }));
+    resolve(models.Sessions.get({ hash: req.session.hash }));
   }).then(function(results) {
     if (results.userId === null) {
       res.redirect(301, '/login');
@@ -50,7 +50,7 @@ module.exports.authenticateUser = (req, res, next) => {
 };
 
 module.exports.associateCookie = (req, res, next) => {
-  let cookieHash = req.cookies.shortlyId;
+  let cookieHash = req.session.hash;
   let userId = req.session.userId;
   console.log('cookie hash: ', cookieHash);
   console.log('userid: ', userId);
@@ -70,7 +70,7 @@ module.exports.associateCookie = (req, res, next) => {
 module.exports.authenticateCredentials = (req, res, next) => {
   let username = req.body.username;
   let attemptedPassword = req.body.password;
-  return new Promise(function(resolve, reject) {
+  new Promise(function(resolve, reject) {
     let options = {
       username: username
     };
