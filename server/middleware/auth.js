@@ -5,24 +5,44 @@ const cookieParser = require('./cookieParser.js');
 module.exports.createSession = (req, res, next) => {
   //create a new session in the db
   //cookie format: shortlyid=<hash>
-  
-  if (!req.cookie || !req.cookie.hasOwnProperty('shortlyid')) {
-    return new Promise((resolve, reject) => {
-      resolve(models.Sessions.create());
-    }).then(results => {
-      console.log('sessionId', results.insertId);
-      return models.Sessions.get({ id: results.insertId});
-    }).then(results => {
-      console.log('results ', results);
-      res.cookie('shortlyid', results.hash);
-      console.log('cookie created: ', req.cookies );
+
+  return new Promise((resolve, reject) => {
+    if (req.cookie && req.cookie.hasOwnProperty('shortlyid')) {
+      resolve(models.Sessions.get({ hash: req.cookie.shortlyid}));
+    } else {
+      throw 'No cookie found. Must create new session.';
+    }
+  }).then(sessionObj => {
+    if (sessionObj === undefined) {
+      throw 'Malicious cookie. Must create new session';
+    } else {
+      req.session = sessionObj;
       next();
-    });
-  } else {
-    next();  
-  }
-  
+    }
+  }).catch(notify => {
+    console.log('NOTIFICATION: ', notify);
+    return models.Sessions.create();
+  }).then(results => {
+    console.log('POST THROW RESULTS, ', results);
+    return models.Sessions.get({ id: results.insertId });
+  }).then(results => {
+    console.log('POST GET RESULTS, ', results);
+    let cookieHash = results.hash;
+    req.session = results;
+    res.cookie('shortlyid', cookieHash);
+    next();
+  });
 };
+
+
+// check if re has cookie && shortlyid
+// if YES
+//   check if session is REAL
+//     if YES req.session = sessionObj
+//     if NO
+//       THROW to createSesh
+// if NO
+//   throw to createSesh
 
 /************************************************************/
 // Add additional authentication middleware functions below
