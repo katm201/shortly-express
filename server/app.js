@@ -19,15 +19,18 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use(cookieParser);
 app.use(Auth.createSession);
 
-app.get('/', Auth.authenticateUser, (req, res) => {
+app.use(require('./middleware/cookieParser'));
+app.use(Auth.createSession);
+
+app.get('/', Auth.verifySession, (req, res) => {
   res.render('index');
 });
 
-app.get('/create', Auth.authenticateUser, (req, res) => {
+app.get('/create', Auth.verifySession, (req, res) => {
   res.render('index');
 });
 
-app.get('/links', Auth.authenticateUser, (req, res, next) => {
+app.get('/links', Auth.verifySession, (req, res, next) => {
   models.Links.getAll()
     .then(links => {
       res.status(200).send(links);
@@ -37,8 +40,7 @@ app.get('/links', Auth.authenticateUser, (req, res, next) => {
     });
 });
 
-app.post('/links', 
-(req, res, next) => {
+app.post('/links', Auth.verifySession, (req, res, next) => {
   var url = req.body.url;
   if (!models.Links.isValidUrl(url)) {
     // send back a 404 if link is not valid
@@ -82,21 +84,72 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
+app.post('/login', (req, res, next) => {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  return models.Users.get({ username })
+    .then(user => {
+
+      if (!user || !models.Users.compare(password, user.password, user.salt)) {
+        // user doesn't exist or the password doesn't match
+        throw new Error('Username and password do not match');
+      }
+
+      return models.Sessions.update({ hash: req.session.hash }, { userId: user.id });
+    })
+    .then(() => {
+      res.redirect('/');
+    })
+    .error(error => {
+      res.status(500).send(error);
+    })
+    .catch(() => {
+      res.redirect('/login');
+    });
+});
+
+app.get('/logout', (req, res, next) => {
+
+  return models.Sessions.delete({ hash: req.cookies.shortlyid })
+    .then(() => {
+      res.clearCookie('shortlyid');
+      res.redirect('/login');
+    })
+    .error(error => {
+      res.status(500).send(error);
+    });
+});
+
 app.get('/signup', (req, res) => {
   res.render('signup');
 });
 
+app.post('/signup', (req, res, next) => {
+  var username = req.body.username;
+  var password = req.body.password;
 
-app.post('/login', Auth.authenticateCredentials, Auth.associateCookie, (req, res) => {
-  res.redirect('/');
-});
+  return models.Users.get({ username })
+    .then(user => {
+      if (user) {
+        // user already exists; throw user to catch and redirect
+        throw user;
+      }
 
-app.post('/signup', Auth.createNewUser, Auth.associateCookie, (req, res) => {
-  res.redirect('/');
-});
-
-app.get('/logout', Auth.removeCookieAndSession, (req, res) => {
-  res.redirect('/');
+      return models.Users.create({ username, password });
+    })
+    .then(results => {
+      return models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId });
+    })
+    .then(() => {
+      res.redirect('/');
+    })
+    .error(error => {
+      res.status(500).send(error);
+    })
+    .catch(user => {
+      res.redirect('/signup');
+    });
 });
 
 /************************************************************/
